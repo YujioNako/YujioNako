@@ -70,7 +70,7 @@
         <a href="http://pro-ivan.cn/aboutme/yujio4.0.png"><img src="http://pro-ivan.cn/aboutme/yujio4.0.webp" alt="钰中" width="30%"></a><br>
 	<HR style="FILTER:alpha(opacity=100,finishopacity=0,style=3)" width="80%"color=#C0C0C0 SIZE=3>
 	<div id="ct1"><h3>Message Board</h3></div>
-	   <a href="https://github.com/ldcivan/ldcivan/pulls">Click Me!</a>
+	   <a href="http://pro-ivan.cn/comment.html">Click Me!</a>
     </center>
 </body>
 

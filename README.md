@@ -1,6 +1,6 @@
 <body  bgcolor=#FAFAFA>
         <p align="center">
-        <img src="http://pro-ivan.cn/Ivan.png" alt="Ivan社徽" width="25%"><br>
+        <img src="https://pro-ivan.com/Ivan.png" alt="Ivan社徽" width="25%"><br>
 	<img align="" src="https://count.getloli.com/get/@ldcivan?theme=gelbooru" width="20%"/><br>
         <font size="5" color="#000000">----About YujioNako & Pro-Ivan----</font><br>
         <a href="http://pro-ivan.com/indexx.html"><font color=#FF7C00>Main Site</font></a> · <a href="http://pro-ivan.com/new-page1.html"><font color=#95caee>Image Collection</font></a> · <a href="http://pro-ivan.com/new-comic.html"><font color=#FF7C00>Manga</font></a> · <a href="http://pro-ivan.com/comment.html"><font color=#95CAEE>Feedback</font></a> · <a href="http://pro-ivan.com/new-upload.html"><font color=#FF7C00>Img_Bed</font></a> · <a href="http://pro-ivan.com/new-download.php"><font color=#95caee>Download</font></a> · <a href="http://pro-ivan.com/game"><font color=#FF7C00>JS Game</font></a><br>
@@ -54,30 +54,30 @@
  </tr>
  <tr>
   <th align="left">Platform</th>
-  <td align="center"><a href="https://space.bilibili.com/11022578"><img src="http://pro-ivan.cn/Bilibili_Logo_Blue.svg" alt="Bilibili" width="50"></a></td>
+  <td align="center"><a href="https://space.bilibili.com/11022578"><img src="http://pro-ivan.com/Bilibili_Logo_Blue.svg" alt="Bilibili" width="50"></a></td>
   <td align="center">-</td>
  </tr>
  <tr>
   <th align="left">Belonging</th>
-  <td align="center"><a href="https://pro-ivan.cn/"><img src="http://pro-ivan.cn/Ivan.png" alt="Ivan社徽" width="50"></a><br>BUPT Yanfeng Animate Club</td>
-  <td align="center"><a href="https://pro-ivan.cn/"><img src="http://pro-ivan.cn/Ivan.png" alt="Ivan社徽" width="50"></a></td>
+  <td align="center"><a href="https://pro-ivan.com/"><img src="http://pro-ivan.com/Ivan.png" alt="Ivan社徽" width="50"></a><br>BUPT Yanfeng Animate Club</td>
+  <td align="center"><a href="https://pro-ivan.com/"><img src="http://pro-ivan.com/Ivan.png" alt="Ivan社徽" width="50"></a></td>
  </tr>
 </table><br>
         <h1 align="center">Yujio&Nako's Illustration</h1>
         <h3 align="center">Oringinal Illustrations</h3>
 	<div align="center">
-        <a href="http://pro-ivan.cn/aboutme/yujio1.0.png"><img src="http://pro-ivan.cn/aboutme/yujio1.0.webp" alt="钰中" width="30%"></a>
-        <a href="http://pro-ivan.cn/aboutme/nako1.0.png"><img src="http://pro-ivan.cn/aboutme/nako1.0.webp" alt="那珂" width="30%"></a><br>
+        <a href="http://pro-ivan.com/aboutme/yujio1.0.png"><img src="http://pro-ivan.com/aboutme/yujio1.0.webp" alt="钰中" width="30%"></a>
+        <a href="http://pro-ivan.com/aboutme/nako1.0.png"><img src="http://pro-ivan.com/aboutme/nako1.0.webp" alt="那珂" width="30%"></a><br>
 	</div>
         <h3 align="center">Developed Illustrations of Yujio</h3>
 	<div align="center">
-        <a href="http://pro-ivan.cn/aboutme/yujio2.0.png"><img src="http://pro-ivan.cn/aboutme/yujio2.0.webp" alt="钰中" width="30%"></a>
-        <a href="http://pro-ivan.cn/aboutme/yujio3.0.png"><img src="http://pro-ivan.cn/aboutme/yujio3.0.webp" alt="钰中" width="30%"></a>
-        <a href="http://pro-ivan.cn/aboutme/yujio4.0.png"><img src="http://pro-ivan.cn/aboutme/yujio4.0.webp" alt="钰中" width="30%"></a><br>
+        <a href="http://pro-ivan.com/aboutme/yujio2.0.png"><img src="http://pro-ivan.com/aboutme/yujio2.0.webp" alt="钰中" width="30%"></a>
+        <a href="http://pro-ivan.com/aboutme/yujio3.0.png"><img src="http://pro-ivan.com/aboutme/yujio3.0.webp" alt="钰中" width="30%"></a>
+        <a href="http://pro-ivan.com/aboutme/yujio4.0.png"><img src="http://pro-ivan.com/aboutme/yujio4.0.webp" alt="钰中" width="30%"></a><br>
 	</div>
 	<div align="center"><HR style="FILTER:alpha(opacity=100,finishopacity=0,style=3)" width="90%"color=#C0C0C0 SIZE=3></div>
 	<div id="ct1"><h3>Message Board</h3></div>
-	   <a href="http://pro-ivan.cn/comment.html">Click Me!</a>
+	   <a href="http://pro-ivan.com/comment.html">Click Me!</a>
     </p>
 </body>
 

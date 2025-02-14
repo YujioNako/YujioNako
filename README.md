@@ -1,14 +1,14 @@
 <body  bgcolor=#FAFAFA>
         <p align="center">
         <img src="https://pro-ivan.com/Ivan.png" alt="Ivan社徽" width="25%"><br>
-	<img align="" src="https://count.getloli.com/get/@ldcivan?theme=gelbooru" width="20%"/><br>
+	<img align="" src="https://count.getloli.com/get/@YujioNako?theme=gelbooru" width="20%"/><br>
         <font size="5" color="#000000">----About YujioNako & Pro-Ivan----</font><br>
         <a href="http://pro-ivan.com/indexx.html"><font color=#FF7C00>Main Site</font></a> · <a href="http://pro-ivan.com/new-page1.html"><font color=#95caee>Image Collection</font></a> · <a href="http://pro-ivan.com/new-comic.html"><font color=#FF7C00>Manga</font></a> · <a href="http://pro-ivan.com/comment.html"><font color=#95CAEE>Feedback</font></a> · <a href="http://pro-ivan.com/new-upload.html"><font color=#FF7C00>Img_Bed</font></a> · <a href="http://pro-ivan.com/new-download.php"><font color=#95caee>Download</font></a> · <a href="http://pro-ivan.com/game"><font color=#FF7C00>JS Game</font></a><br>
         <font size="1" color="#808080">Have you saw this site, very simple right? That's cause we know little about html5 lol</font><br>
-	<img align="" height="200px" src="https://github-readme-stats.vercel.app/api?username=ldcivan&show_icons=true" />
-	<img align="" height="200px" src="https://github-readme-stats.vercel.app/api/top-langs/?username=ldcivan&langs_count=6&layout=compact" /><br>
+	<img align="" height="200px" src="https://github-readme-stats.vercel.app/api?username=YujioNako&show_icons=true" />
+	<img align="" height="200px" src="https://github-readme-stats.vercel.app/api/top-langs/?username=YujioNako&langs_count=6&layout=compact" /><br>
         <h1>Introduction</h1>
-        Members of Pro-Ivan, Yujio and Nako, mainly appear in Bilibili. Character set came from Ldcivan。<s>Actually, it's another name of Nako.</s><br>
+        Members of Pro-Ivan, Yujio and Nako, mainly appear in Bilibili. Character set came from YujioNako。<s>Actually, it's another name of Nako.</s><br>
         Yujio is a vtuber, while Nako act as the manager of Yujio.<br>
         Yujio rarely broadcast live now.<br>
         <h1>Background setting</h1>

@@ -1,19 +1,34 @@
-// Main Game Engine for FPS Training Simulator
-
-class FPSTrainingGame {
+// 3D FPS Training Simulator using Canvas 2D with 3D projection
+class FPS3DTrainingGame {
     constructor() {
+        // Canvas and context
         this.canvas = null;
         this.ctx = null;
+        
+        // Game state
         this.state = 'menu'; // 'menu', 'playing', 'paused', 'settings'
         this.mode = null; // 'tracking', 'positioning'
-        this.lastTime = 0;
-        this.fps = 60;
-        this.frameCount = 0;
+        this.isPointerLocked = false;
         
-        // Game objects
-        this.player = null;
+        // 3D Camera and player
+        this.camera = {
+            x: 0,
+            y: 1.6, // Eye level height
+            z: 0,
+            rotX: 0, // Pitch (up/down rotation)
+            rotY: 0, // Yaw (left/right rotation)
+            fov: 75,
+            near: 0.1,
+            far: 100
+        };
+        
+        // Player movement
+        this.moveState = { forward: false, backward: false, left: false, right: false };
+        this.velocity = { x: 0, y: 0, z: 0 };
+        
+        // 3D objects
         this.targets = [];
-        this.projectiles = [];
+        this.environment = [];
         
         // Systems
         this.weaponSystem = null;
@@ -23,164 +38,211 @@ class FPSTrainingGame {
         
         // Game settings
         this.settings = {
-            sensitivity: 1.0,
+            sensitivity: 0.002,
             volume: 0.5,
-            targetDistance: 400,
-            targetSize: 200,
-            playerAreaWidth: 300,
-            playerAreaHeight: 200
+            fov: 75,
+            targetDistance: 20,
+            mouseSensitivity: 1.0
         };
         
-        // Game areas
-        this.playerArea = { x: 0, y: 0, width: 300, height: 200 };
-        this.targetArea = { x: 0, y: 0, width: 200, height: 200 };
+        // Performance
+        this.lastTime = 0;
+        this.fps = 60;
+        this.frameCount = 0;
         
         this.initialize();
     }
     
     async initialize() {
-        console.log('Initializing FPS Training Simulator...');
+        console.log('Initializing 3D FPS Training Simulator...');
         
-        // Get canvas and context
-        this.canvas = document.getElementById('game-canvas');
-        this.ctx = this.canvas.getContext('2d');
-        
-        if (!this.canvas || !this.ctx) {
-            console.error('Failed to get canvas context');
-            return;
-        }
-        
-        // Initialize systems
-        this.weaponSystem = new WeaponSystem();
-        this.controlSystem = new ControlSystem(this.canvas);
-        this.audioSystem = new AudioSystem();
-        this.statsSystem = new StatsSystem();
-        
-        // Initialize player
-        this.player = {
-            x: this.canvas.width / 4,
-            y: this.canvas.height / 2,
-            aimX: this.canvas.width / 2,
-            aimY: this.canvas.height / 2,
-            speed: 100 // pixels per second
-        };
-        
-        // Calculate areas
-        this.calculateAreas();
-        
-        // Setup UI
-        this.setupUI();
-        
-        // Start game loop
-        this.gameLoop();
-        
-        // Hide loading screen
-        this.hideLoadingScreen();
-        
-        console.log('Game initialized successfully');
-    }
-    
-    calculateAreas() {
-        const canvasWidth = this.canvas.width;
-        const canvasHeight = this.canvas.height;
-        
-        // Player area (left side)
-        this.playerArea = {
-            x: 50,
-            y: canvasHeight / 2 - this.settings.playerAreaHeight / 2,
-            width: this.settings.playerAreaWidth,
-            height: this.settings.playerAreaHeight
-        };
-        
-        // Target area (right side, distance-based)
-        const targetAreaX = this.playerArea.x + this.playerArea.width + this.settings.targetDistance;
-        this.targetArea = {
-            x: targetAreaX,
-            y: canvasHeight / 2 - this.settings.targetSize / 2,
-            width: this.settings.targetSize,
-            height: this.settings.targetSize
-        };
-        
-        // Ensure areas fit on canvas
-        if (this.targetArea.x + this.targetArea.width > canvasWidth - 50) {
-            this.targetArea.x = canvasWidth - this.targetArea.width - 50;
+        try {
+            // Get canvas and context
+            this.canvas = document.getElementById('game-canvas');
+            this.ctx = this.canvas.getContext('2d');
+            
+            if (!this.canvas || !this.ctx) {
+                throw new Error('Failed to get canvas context');
+            }
+            
+            // Initialize systems
+            this.weaponSystem = new WeaponSystem();
+            this.controlSystem = new ControlSystem(this);
+            this.audioSystem = new AudioSystem();
+            this.statsSystem = new StatsSystem();
+            
+            // Initialize 3D environment
+            this.initializeEnvironment();
+            
+            // Initialize UI
+            this.initializeUI();
+            this.setupEventListeners();
+            
+            // Start render loop
+            this.animate();
+            
+            console.log('3D FPS Training Simulator initialized successfully');
+            this.hideLoadingScreen();
+            
+        } catch (error) {
+            console.error('Failed to initialize game:', error);
+            this.showError('Failed to initialize game: ' + error.message);
         }
     }
     
-    setupUI() {
+    initializeEnvironment() {
+        // Create 3D environment objects
+        this.environment = [
+            // Ground plane
+            {
+                type: 'plane',
+                x: 0, y: 0, z: 0,
+                width: 100, height: 100,
+                rotX: Math.PI / 2, rotY: 0, rotZ: 0,
+                color: '#2c3e50'
+            },
+            // Back wall
+            {
+                type: 'plane',
+                x: 0, y: 10, z: -25,
+                width: 50, height: 20,
+                rotX: 0, rotY: 0, rotZ: 0,
+                color: '#34495e'
+            },
+            // Side walls
+            {
+                type: 'plane',
+                x: -25, y: 10, z: 0,
+                width: 50, height: 20,
+                rotX: 0, rotY: Math.PI / 2, rotZ: 0,
+                color: '#34495e'
+            },
+            {
+                type: 'plane',
+                x: 25, y: 10, z: 0,
+                width: 50, height: 20,
+                rotX: 0, rotY: -Math.PI / 2, rotZ: 0,
+                color: '#34495e'
+            }
+        ];
+        
+        // Add depth markers
+        for (let i = 0; i < 5; i++) {
+            this.environment.push({
+                type: 'box',
+                x: -20 + i * 10,
+                y: 1.5,
+                z: -20,
+                width: 0.5,
+                height: 3,
+                depth: 0.5,
+                color: '#7f8c8d'
+            });
+        }
+    }
+    
+    initializeUI() {
+        // Initialize crosshair
+        this.createCrosshair();
+        
+        // Update weapon info display
+        this.updateWeaponDisplay();
+    }
+    
+    createCrosshair() {
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) {
+            crosshair.style.position = 'fixed';
+            crosshair.style.top = '50%';
+            crosshair.style.left = '50%';
+            crosshair.style.transform = 'translate(-50%, -50%)';
+            crosshair.style.width = '4px';
+            crosshair.style.height = '4px';
+            crosshair.style.backgroundColor = '#e74c3c';
+            crosshair.style.borderRadius = '50%';
+            crosshair.style.zIndex = '1000';
+            crosshair.style.pointerEvents = 'none';
+        }
+    }
+    
+    setupEventListeners() {
         // Menu buttons
-        document.getElementById('start-tracking').addEventListener('click', () => {
+        document.getElementById('start-tracking')?.addEventListener('click', () => {
             this.startGame('tracking');
         });
         
-        document.getElementById('start-positioning').addEventListener('click', () => {
+        document.getElementById('start-positioning')?.addEventListener('click', () => {
             this.startGame('positioning');
         });
         
-        document.getElementById('settings-btn').addEventListener('click', () => {
+        document.getElementById('settings-btn')?.addEventListener('click', () => {
             this.showSettings();
         });
         
-        document.getElementById('back-to-menu').addEventListener('click', () => {
+        document.getElementById('back-to-menu')?.addEventListener('click', () => {
             this.showMenu();
         });
         
         // Pause menu
-        document.getElementById('resume-game').addEventListener('click', () => {
+        document.getElementById('resume-game')?.addEventListener('click', () => {
             this.resumeGame();
         });
         
-        document.getElementById('restart-game').addEventListener('click', () => {
+        document.getElementById('restart-game')?.addEventListener('click', () => {
             this.restartGame();
         });
         
-        document.getElementById('quit-game').addEventListener('click', () => {
+        document.getElementById('quit-game')?.addEventListener('click', () => {
             this.quitToMenu();
         });
         
         // Settings
-        this.setupSettingsUI();
+        this.setupSettingsListeners();
         
-        // Escape key for pause
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Escape') {
-                if (this.state === 'playing') {
-                    this.pauseGame();
-                } else if (this.state === 'paused') {
-                    this.resumeGame();
-                }
-            }
-        });
+        // Pointer lock events
+        document.addEventListener('pointerlockchange', () => this.onPointerLockChange());
+        document.addEventListener('pointerlockerror', () => this.onPointerLockError());
+        
+        // Handle window resize
+        window.addEventListener('resize', () => this.onWindowResize());
     }
     
-    setupSettingsUI() {
+    setupSettingsListeners() {
+        // Sensitivity
         const sensitivitySlider = document.getElementById('sensitivity-slider');
+        const sensitivityValue = document.getElementById('sensitivity-value');
+        sensitivitySlider?.addEventListener('input', (e) => {
+            this.settings.mouseSensitivity = parseFloat(e.target.value);
+            this.settings.sensitivity = 0.002 * this.settings.mouseSensitivity;
+            sensitivityValue.textContent = this.settings.mouseSensitivity.toFixed(1);
+        });
+        
+        // Volume
         const volumeSlider = document.getElementById('volume-slider');
+        const volumeValue = document.getElementById('volume-value');
+        volumeSlider?.addEventListener('input', (e) => {
+            this.settings.volume = parseFloat(e.target.value) / 100;
+            volumeValue.textContent = e.target.value + '%';
+            if (this.audioSystem) {
+                this.audioSystem.setMasterVolume(this.settings.volume);
+            }
+        });
+        
+        // FOV
+        const fovSlider = document.getElementById('fov-slider');
+        const fovValue = document.getElementById('fov-value');
+        fovSlider?.addEventListener('input', (e) => {
+            this.settings.fov = parseInt(e.target.value);
+            this.camera.fov = this.settings.fov;
+            fovValue.textContent = this.settings.fov + '°';
+        });
+        
+        // Target Distance
         const distanceSlider = document.getElementById('distance-slider');
-        const targetSizeSlider = document.getElementById('target-size-slider');
-        
-        sensitivitySlider.addEventListener('input', (e) => {
-            this.settings.sensitivity = parseFloat(e.target.value);
-            document.getElementById('sensitivity-value').textContent = e.target.value;
-            this.controlSystem.setSensitivity(this.settings.sensitivity);
-        });
-        
-        volumeSlider.addEventListener('input', (e) => {
-            this.settings.volume = parseInt(e.target.value) / 100;
-            document.getElementById('volume-value').textContent = e.target.value + '%';
-            this.audioSystem.setMasterVolume(this.settings.volume);
-        });
-        
-        distanceSlider.addEventListener('input', (e) => {
+        const distanceValue = document.getElementById('distance-value');
+        distanceSlider?.addEventListener('input', (e) => {
             this.settings.targetDistance = parseInt(e.target.value);
-            document.getElementById('distance-value').textContent = e.target.value + 'px';
-            this.calculateAreas();
-        });
-        
-        targetSizeSlider.addEventListener('input', (e) => {
-            this.settings.targetSize = parseInt(e.target.value);
-            document.getElementById('target-size-value').textContent = e.target.value + 'px';
-            this.calculateAreas();
+            distanceValue.textContent = this.settings.targetDistance + 'm';
         });
     }
     
@@ -188,77 +250,487 @@ class FPSTrainingGame {
         this.mode = mode;
         this.state = 'playing';
         
-        // Reset game objects
-        this.targets = [];
-        this.projectiles = [];
+        // Request pointer lock
+        this.canvas.requestPointerLock();
         
-        // Reset player position
-        this.player.x = this.playerArea.x + this.playerArea.width / 2;
-        this.player.y = this.playerArea.y + this.playerArea.height / 2;
-        
-        // Reset weapons
-        this.weaponSystem.reset();
-        
-        // Start statistics tracking
-        this.statsSystem.startSession(mode, this.weaponSystem.currentWeapon);
-        
-        // Hide menus, show game
+        // Hide menu, show game UI
         this.hideAllMenus();
-        document.body.classList.add('game-active');
+        this.showGameUI();
         
-        // Start audio
-        this.audioSystem.startAmbientSound();
-        
-        // Spawn initial targets
+        // Initialize game mode
         if (mode === 'tracking') {
-            this.spawnTrackingTarget();
+            this.startTrackingMode();
         } else if (mode === 'positioning') {
-            this.schedulePositioningTarget();
+            this.startPositioningMode();
         }
         
-        console.log(`Started ${mode} training mode`);
+        // Reset stats
+        this.statsSystem.reset();
+        this.updateStatsDisplay();
+    }
+    
+    startTrackingMode() {
+        console.log('Starting tracking mode');
+        this.createTrackingTarget();
+    }
+    
+    startPositioningMode() {
+        console.log('Starting positioning mode');
+        this.spawnPositioningTarget();
+    }
+    
+    createTrackingTarget() {
+        // Remove existing targets
+        this.clearTargets();
+        
+        // Create 3D sphere target
+        const target = {
+            type: 'sphere',
+            x: 0,
+            y: 2,
+            z: -this.settings.targetDistance,
+            radius: 0.5,
+            color: '#e74c3c',
+            userData: {
+                type: 'tracking',
+                velocity: {
+                    x: (Math.random() - 0.5) * 10,
+                    y: (Math.random() - 0.5) * 5,
+                    z: 0
+                },
+                bounds: { x: 15, y: 8, z: 5 },
+                startX: 0,
+                startY: 2,
+                startZ: -this.settings.targetDistance
+            }
+        };
+        
+        this.targets.push(target);
+    }
+    
+    spawnPositioningTarget() {
+        // Remove existing targets
+        this.clearTargets();
+        
+        // Create 3D sphere target at random position
+        const angle = Math.random() * Math.PI * 2;
+        const distance = this.settings.targetDistance + (Math.random() - 0.5) * 10;
+        const height = 1 + Math.random() * 3;
+        
+        const target = {
+            type: 'sphere',
+            x: Math.cos(angle) * distance * 0.3,
+            y: height,
+            z: -distance + Math.sin(angle) * distance * 0.3,
+            radius: 0.3,
+            color: '#e74c3c',
+            userData: {
+                type: 'positioning',
+                spawnTime: Date.now(),
+                lifetime: 3000 + Math.random() * 2000
+            }
+        };
+        
+        this.targets.push(target);
+        
+        // Schedule next target
+        setTimeout(() => {
+            if (this.state === 'playing' && this.mode === 'positioning') {
+                this.spawnPositioningTarget();
+            }
+        }, target.userData.lifetime + 500);
+    }
+    
+    clearTargets() {
+        this.targets = [];
+    }
+    
+    updateTargets(deltaTime) {
+        this.targets.forEach((target, index) => {
+            if (target.userData.type === 'tracking') {
+                this.updateTrackingTarget(target, deltaTime);
+            } else if (target.userData.type === 'positioning') {
+                this.updatePositioningTarget(target, index);
+            }
+        });
+    }
+    
+    updateTrackingTarget(target, deltaTime) {
+        const userData = target.userData;
+        
+        // Update position
+        target.x += userData.velocity.x * deltaTime;
+        target.y += userData.velocity.y * deltaTime;
+        target.z += userData.velocity.z * deltaTime;
+        
+        // Bounce off bounds
+        const relativeX = target.x - userData.startX;
+        const relativeY = target.y - userData.startY;
+        
+        if (Math.abs(relativeX) > userData.bounds.x) {
+            userData.velocity.x *= -1;
+            target.x = userData.startX + Math.sign(relativeX) * userData.bounds.x;
+        }
+        
+        if (Math.abs(relativeY) > userData.bounds.y) {
+            userData.velocity.y *= -1;
+            target.y = userData.startY + Math.sign(relativeY) * userData.bounds.y;
+        }
+        
+        // Add randomness to movement
+        userData.velocity.x += (Math.random() - 0.5) * 2 * deltaTime;
+        userData.velocity.y += (Math.random() - 0.5) * 1 * deltaTime;
+        
+        // Limit velocity
+        const maxSpeed = 15;
+        const speed = Math.sqrt(userData.velocity.x ** 2 + userData.velocity.y ** 2);
+        if (speed > maxSpeed) {
+            userData.velocity.x = (userData.velocity.x / speed) * maxSpeed;
+            userData.velocity.y = (userData.velocity.y / speed) * maxSpeed;
+        }
+    }
+    
+    updatePositioningTarget(target, index) {
+        const userData = target.userData;
+        const elapsed = Date.now() - userData.spawnTime;
+        
+        if (elapsed > userData.lifetime) {
+            this.targets.splice(index, 1);
+            
+            // Count as miss
+            this.statsSystem.recordMiss();
+            this.updateStatsDisplay();
+        }
+    }
+    
+    handleShooting() {
+        if (this.state !== 'playing' || !this.weaponSystem) return;
+        
+        // Check if weapon can fire
+        if (!this.weaponSystem.canFire()) return;
+        
+        // Fire weapon
+        this.weaponSystem.fire();
+        
+        // Update ammo display
+        this.updateWeaponDisplay();
+        
+        // Play shooting sound
+        if (this.audioSystem) {
+            this.audioSystem.playWeaponSound(this.weaponSystem.getCurrentWeapon().type);
+        }
+        
+        // Perform raycast
+        this.performRaycast();
+        
+        // Record shot
+        this.statsSystem.recordShot();
+        this.updateStatsDisplay();
+    }
+    
+    performRaycast() {
+        // Create ray from camera center with weapon spread
+        const weapon = this.weaponSystem.getCurrentWeapon();
+        const spread = this.weaponSystem.getCurrentSpread();
+        
+        // Apply spread to aim direction
+        const spreadX = (Math.random() - 0.5) * spread;
+        const spreadY = (Math.random() - 0.5) * spread;
+        
+        // Calculate ray direction considering camera rotation and spread
+        const rayDirX = Math.sin(this.camera.rotY + spreadX) * Math.cos(this.camera.rotX + spreadY);
+        const rayDirY = -Math.sin(this.camera.rotX + spreadY);
+        const rayDirZ = -Math.cos(this.camera.rotY + spreadX) * Math.cos(this.camera.rotX + spreadY);
+        
+        // Check intersection with targets
+        this.targets.forEach((target, index) => {
+            if (this.raySphereIntersection(
+                this.camera.x, this.camera.y, this.camera.z,
+                rayDirX, rayDirY, rayDirZ,
+                target.x, target.y, target.z, target.radius
+            )) {
+                this.handleTargetHit(target, index);
+            }
+        });
+    }
+    
+    raySphereIntersection(rayX, rayY, rayZ, dirX, dirY, dirZ, sphereX, sphereY, sphereZ, radius) {
+        // Vector from ray origin to sphere center
+        const ocX = rayX - sphereX;
+        const ocY = rayY - sphereY;
+        const ocZ = rayZ - sphereZ;
+        
+        // Quadratic equation coefficients
+        const a = dirX * dirX + dirY * dirY + dirZ * dirZ;
+        const b = 2.0 * (ocX * dirX + ocY * dirY + ocZ * dirZ);
+        const c = ocX * ocX + ocY * ocY + ocZ * ocZ - radius * radius;
+        
+        // Discriminant
+        const discriminant = b * b - 4 * a * c;
+        
+        return discriminant >= 0;
+    }
+    
+    handleTargetHit(target, index) {
+        // Record hit
+        this.statsSystem.recordHit();
+        this.updateStatsDisplay();
+        
+        // Play hit sound
+        if (this.audioSystem) {
+            this.audioSystem.playHitSound({ x: target.x, y: target.y, z: target.z });
+        }
+        
+        // Remove target if positioning mode
+        if (target.userData.type === 'positioning') {
+            this.targets.splice(index, 1);
+        }
+        
+        // Create hit effect (visual feedback)
+        this.createHitEffect(target.x, target.y, target.z);
+    }
+    
+    createHitEffect(x, y, z) {
+        // Add a temporary hit effect
+        // For now, just log it - could add visual particles later
+        console.log(`Hit effect at (${x}, ${y}, ${z})`);
+    }
+    
+    handleMovement(deltaTime) {
+        if (this.state !== 'playing') return;
+        
+        const moveSpeed = 10; // units per second
+        let moveX = 0, moveZ = 0;
+        
+        // Calculate movement direction relative to camera
+        if (this.moveState.forward) {
+            moveX += Math.sin(this.camera.rotY);
+            moveZ -= Math.cos(this.camera.rotY);
+        }
+        if (this.moveState.backward) {
+            moveX -= Math.sin(this.camera.rotY);
+            moveZ += Math.cos(this.camera.rotY);
+        }
+        if (this.moveState.left) {
+            moveX -= Math.cos(this.camera.rotY);
+            moveZ -= Math.sin(this.camera.rotY);
+        }
+        if (this.moveState.right) {
+            moveX += Math.cos(this.camera.rotY);
+            moveZ += Math.sin(this.camera.rotY);
+        }
+        
+        // Normalize and apply movement
+        const moveLength = Math.sqrt(moveX * moveX + moveZ * moveZ);
+        if (moveLength > 0) {
+            this.camera.x += (moveX / moveLength) * moveSpeed * deltaTime;
+            this.camera.z += (moveZ / moveLength) * moveSpeed * deltaTime;
+        }
+    }
+    
+    handleMouseMovement(movementX, movementY) {
+        if (!this.isPointerLocked) return;
+        
+        const sensitivity = this.settings.sensitivity;
+        
+        // Update camera rotation
+        this.camera.rotY -= movementX * sensitivity;
+        this.camera.rotX -= movementY * sensitivity;
+        
+        // Limit vertical rotation
+        this.camera.rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.camera.rotX));
+    }
+    
+    // 3D Projection and Rendering
+    project3D(x, y, z) {
+        // Transform to camera space
+        const cosY = Math.cos(this.camera.rotY);
+        const sinY = Math.sin(this.camera.rotY);
+        const cosX = Math.cos(this.camera.rotX);
+        const sinX = Math.sin(this.camera.rotX);
+        
+        // Translate to camera position
+        const tx = x - this.camera.x;
+        const ty = y - this.camera.y;
+        const tz = z - this.camera.z;
+        
+        // Rotate around Y axis (yaw)
+        const rx = tx * cosY - tz * sinY;
+        const rz = tx * sinY + tz * cosY;
+        
+        // Rotate around X axis (pitch)
+        const ry = ty * cosX - rz * sinX;
+        const finalZ = ty * sinX + rz * cosX;
+        
+        // Project to screen space
+        if (finalZ <= 0) return null; // Behind camera
+        
+        const fov = this.camera.fov * Math.PI / 180;
+        const scale = (this.canvas.height / 2) / Math.tan(fov / 2);
+        
+        const screenX = (rx * scale / finalZ) + this.canvas.width / 2;
+        const screenY = (ry * scale / finalZ) + this.canvas.height / 2;
+        
+        return { x: screenX, y: screenY, z: finalZ };
+    }
+    
+    render() {
+        // Clear canvas with background
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Render environment
+        this.renderEnvironment();
+        
+        // Render targets
+        this.renderTargets();
+        
+        // Render UI elements if playing
+        if (this.state === 'playing') {
+            this.renderGameUI();
+        }
+    }
+    
+    renderEnvironment() {
+        // Simple environment rendering
+        // For now, just render a basic ground grid and walls outline
+        this.ctx.strokeStyle = '#34495e';
+        this.ctx.lineWidth = 1;
+        
+        // Draw ground grid
+        for (let i = -50; i <= 50; i += 5) {
+            // Lines parallel to X axis
+            const p1 = this.project3D(i, 0, -50);
+            const p2 = this.project3D(i, 0, 50);
+            if (p1 && p2) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(p1.x, p1.y);
+                this.ctx.lineTo(p2.x, p2.y);
+                this.ctx.stroke();
+            }
+            
+            // Lines parallel to Z axis
+            const p3 = this.project3D(-50, 0, i);
+            const p4 = this.project3D(50, 0, i);
+            if (p3 && p4) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(p3.x, p3.y);
+                this.ctx.lineTo(p4.x, p4.y);
+                this.ctx.stroke();
+            }
+        }
+        
+        // Draw depth markers
+        this.environment.forEach(obj => {
+            if (obj.type === 'box') {
+                const projected = this.project3D(obj.x, obj.y, obj.z);
+                if (projected) {
+                    this.ctx.fillStyle = obj.color;
+                    const size = Math.max(2, 20 / projected.z); // Size based on distance
+                    this.ctx.fillRect(projected.x - size/2, projected.y - size, size, size * 2);
+                }
+            }
+        });
+    }
+    
+    renderTargets() {
+        this.targets.forEach(target => {
+            const projected = this.project3D(target.x, target.y, target.z);
+            if (projected) {
+                // Calculate size based on distance
+                const size = (target.radius * 50) / projected.z;
+                
+                this.ctx.fillStyle = target.color;
+                this.ctx.beginPath();
+                this.ctx.arc(projected.x, projected.y, size, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Add outline
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
+            }
+        });
+    }
+    
+    renderGameUI() {
+        // Render any additional game UI elements here
+        // The HUD is handled by HTML overlay
+    }
+    
+    onPointerLockChange() {
+        this.isPointerLocked = document.pointerLockElement === this.canvas;
+        
+        if (!this.isPointerLocked && this.state === 'playing') {
+            this.pauseGame();
+        }
+    }
+    
+    onPointerLockError() {
+        console.error('Pointer lock failed');
+    }
+    
+    onWindowResize() {
+        // Update canvas size if needed
+        const container = this.canvas.parentElement;
+        const rect = container.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
     }
     
     pauseGame() {
-        if (this.state !== 'playing') return;
-        
-        this.state = 'paused';
-        document.getElementById('pause-menu').classList.add('active');
-        document.body.classList.add('game-paused');
-        this.audioSystem.stopAmbientSound();
+        if (this.state === 'playing') {
+            this.state = 'paused';
+            this.showPauseMenu();
+        }
     }
     
     resumeGame() {
-        if (this.state !== 'paused') return;
-        
-        this.state = 'playing';
-        document.getElementById('pause-menu').classList.remove('active');
-        document.body.classList.remove('game-paused');
-        this.audioSystem.startAmbientSound();
+        if (this.state === 'paused') {
+            this.state = 'playing';
+            this.hidePauseMenu();
+            this.canvas.requestPointerLock();
+        }
     }
     
     restartGame() {
-        this.statsSystem.endSession();
+        this.clearTargets();
         this.startGame(this.mode);
     }
     
     quitToMenu() {
-        this.statsSystem.endSession();
+        this.state = 'menu';
+        this.clearTargets();
+        document.exitPointerLock();
+        this.hideGameUI();
         this.showMenu();
     }
     
+    // UI Management
     showMenu() {
-        this.state = 'menu';
         this.hideAllMenus();
-        document.getElementById('main-menu').classList.add('active');
-        document.body.classList.remove('game-active', 'game-paused');
-        this.audioSystem.stopAmbientSound();
+        document.getElementById('main-menu')?.classList.add('active');
     }
     
     showSettings() {
-        this.state = 'settings';
         this.hideAllMenus();
-        document.getElementById('settings-menu').classList.add('active');
+        document.getElementById('settings-menu')?.classList.add('active');
+    }
+    
+    showPauseMenu() {
+        document.getElementById('pause-menu')?.classList.add('active');
+    }
+    
+    hidePauseMenu() {
+        document.getElementById('pause-menu')?.classList.remove('active');
+    }
+    
+    showGameUI() {
+        document.getElementById('hud')?.style.setProperty('display', 'block');
+    }
+    
+    hideGameUI() {
+        document.getElementById('hud')?.style.setProperty('display', 'none');
     }
     
     hideAllMenus() {
@@ -267,566 +739,80 @@ class FPSTrainingGame {
         });
     }
     
+    updateWeaponDisplay() {
+        if (!this.weaponSystem) return;
+        
+        const weapon = this.weaponSystem.getCurrentWeapon();
+        const nameElement = document.getElementById('weapon-name');
+        const ammoElement = document.getElementById('ammo-count');
+        
+        if (nameElement) nameElement.textContent = weapon.name;
+        if (ammoElement) ammoElement.textContent = `${this.weaponSystem.currentAmmo}/${this.weaponSystem.totalAmmo}`;
+    }
+    
+    updateStatsDisplay() {
+        if (!this.statsSystem) return;
+        
+        const stats = this.statsSystem.getCurrentStats();
+        
+        const accuracyElement = document.getElementById('accuracy');
+        const hitsElement = document.getElementById('hits');
+        const shotsElement = document.getElementById('shots');
+        
+        if (accuracyElement) accuracyElement.textContent = stats.accuracy + '%';
+        if (hitsElement) hitsElement.textContent = stats.hits.toString();
+        if (shotsElement) shotsElement.textContent = stats.shots.toString();
+    }
+    
     hideLoadingScreen() {
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
-            loadingScreen.style.display = 'none';
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
         }
     }
     
-    spawnTrackingTarget() {
-        const target = {
-            id: Date.now(),
-            x: this.targetArea.x + this.targetArea.width / 2,
-            y: this.targetArea.y + this.targetArea.height / 2,
-            radius: 25,
-            health: 100,
-            maxHealth: 100,
-            velocity: { x: 0, y: 0 },
-            speed: 50 + Math.random() * 100,
-            direction: Math.random() * Math.PI * 2,
-            directionChangeTime: 0,
-            directionChangeCooldown: 1000 + Math.random() * 2000,
-            type: 'tracking'
-        };
-        
-        this.targets.push(target);
-        this.statsSystem.recordTargetSpawn(target.id, target.x, target.y);
+    showError(message) {
+        console.error(message);
+        alert(message);
     }
     
-    schedulePositioningTarget() {
-        const delay = 1000 + Math.random() * 2000; // 1-3 seconds
+    animate() {
+        requestAnimationFrame(() => this.animate());
         
-        setTimeout(() => {
-            if (this.state === 'playing' && this.mode === 'positioning') {
-                this.spawnPositioningTarget();
-                this.schedulePositioningTarget(); // Schedule next target
-            }
-        }, delay);
-    }
-    
-    spawnPositioningTarget() {
-        // Remove existing positioning targets
-        this.targets = this.targets.filter(t => t.type !== 'positioning');
-        
-        const target = {
-            id: Date.now(),
-            x: this.targetArea.x + Math.random() * (this.targetArea.width - 50) + 25,
-            y: this.targetArea.y + Math.random() * (this.targetArea.height - 50) + 25,
-            radius: 30,
-            health: 50,
-            maxHealth: 50,
-            lifeTime: 2000 + Math.random() * 1000, // 2-3 seconds
-            createdAt: Date.now(),
-            type: 'positioning'
-        };
-        
-        this.targets.push(target);
-        this.statsSystem.recordTargetSpawn(target.id, target.x, target.y);
-    }
-    
-    update(deltaTime) {
-        if (this.state !== 'playing') return;
-        
-        // Update systems
-        this.weaponSystem.update();
-        this.controlSystem.update();
-        
-        // Get input
-        const movement = this.controlSystem.getMovement();
-        const aim = this.controlSystem.getAim();
-        const actions = this.controlSystem.getActions();
-        
-        // Update player movement
-        this.updatePlayer(movement, deltaTime);
-        
-        // Update player aim
-        this.updateAim(aim);
-        
-        // Handle actions
-        this.handleActions(actions);
-        
-        // Update targets
-        this.updateTargets(deltaTime);
-        
-        // Update projectiles
-        this.updateProjectiles(deltaTime);
-        
-        // Update UI
-        this.updateUI();
-    }
-    
-    updatePlayer(movement, deltaTime) {
-        const speed = this.player.speed * deltaTime;
-        
-        // Move player within bounds
-        const newX = this.player.x + movement.x * speed;
-        const newY = this.player.y + movement.y * speed;
-        
-        // Constrain to player area
-        this.player.x = Math.max(this.playerArea.x, 
-                        Math.min(this.playerArea.x + this.playerArea.width, newX));
-        this.player.y = Math.max(this.playerArea.y, 
-                        Math.min(this.playerArea.y + this.playerArea.height, newY));
-    }
-    
-    updateAim(aim) {
-        // Apply aim assist if using gamepad
-        const assistedAim = this.controlSystem.applyAimAssist(
-            this.targets, 
-            aim.x, 
-            aim.y, 
-            this.weaponSystem.getAimAssistStrength()
-        );
-        
-        this.player.aimX = assistedAim.x;
-        this.player.aimY = assistedAim.y;
-    }
-    
-    handleActions(actions) {
-        // Handle shooting
-        if (actions.shoot && this.weaponSystem.canFire()) {
-            this.shoot();
-        }
-        
-        // Handle reloading
-        if (actions.reload) {
-            this.reload();
-        }
-        
-        // Handle weapon switching
-        if (actions.switchWeapon) {
-            this.switchWeapon();
-        }
-    }
-    
-    shoot() {
-        const shot = this.weaponSystem.fire(
-            this.findClosestTarget(),
-            this.findClosestTarget(),
-            this.player.aimX,
-            this.player.aimY
-        );
-        
-        if (shot) {
-            // Add projectile
-            this.projectiles.push({
-                x: shot.startX,
-                y: shot.startY,
-                directionX: shot.directionX,
-                directionY: shot.directionY,
-                damage: shot.damage,
-                speed: 2000, // pixels per second
-                range: 1000,
-                distanceTraveled: 0
-            });
-            
-            // Play sound
-            this.audioSystem.playWeaponSound(this.weaponSystem.currentWeapon);
-            
-            // Check for hits
-            this.checkHits(shot);
-            
-            // Mobile haptic feedback
-            if (window.mobileOptimizer) {
-                window.mobileOptimizer.provideFeedback('hit');
-            }
-        }
-    }
-    
-    findClosestTarget() {
-        let closest = null;
-        let closestDistance = Infinity;
-        
-        for (const target of this.targets) {
-            const dx = target.x - this.player.aimX;
-            const dy = target.y - this.player.aimY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < closestDistance) {
-                closest = target;
-                closestDistance = distance;
-            }
-        }
-        
-        return closest ? { x: closest.x, y: closest.y } : { x: this.player.aimX, y: this.player.aimY };
-    }
-    
-    checkHits(shot) {
-        let hit = false;
-        
-        for (let i = this.targets.length - 1; i >= 0; i--) {
-            const target = this.targets[i];
-            
-            // Calculate hit using line-circle intersection
-            if (this.lineIntersectsCircle(shot, target)) {
-                // Hit!
-                target.health -= shot.damage;
-                hit = true;
-                
-                // Record hit
-                this.statsSystem.recordShot(
-                    this.weaponSystem.currentWeapon,
-                    true,
-                    shot.damage,
-                    target.x,
-                    target.y,
-                    shot.startX,
-                    shot.startY
-                );
-                
-                // Play hit sound
-                this.audioSystem.playHitSound();
-                
-                // Check if target is destroyed
-                if (target.health <= 0) {
-                    const reactionTime = target.type === 'positioning' ? 
-                        Date.now() - target.createdAt : null;
-                    
-                    this.statsSystem.recordTargetDestroyed(target.id, reactionTime);
-                    this.targets.splice(i, 1);
-                    
-                    // Spawn new target for tracking mode
-                    if (this.mode === 'tracking') {
-                        this.spawnTrackingTarget();
-                    }
-                }
-                
-                break; // Only hit one target per shot
-            }
-        }
-        
-        if (!hit) {
-            // Record miss
-            this.statsSystem.recordShot(
-                this.weaponSystem.currentWeapon,
-                false,
-                0,
-                this.player.aimX,
-                this.player.aimY,
-                shot.startX,
-                shot.startY
-            );
-            
-            this.audioSystem.playMissSound();
-            
-            if (window.mobileOptimizer) {
-                window.mobileOptimizer.provideFeedback('miss');
-            }
-        }
-    }
-    
-    lineIntersectsCircle(shot, target) {
-        const lineLength = 2000; // Max range
-        const endX = shot.startX + shot.directionX * lineLength;
-        const endY = shot.startY + shot.directionY * lineLength;
-        
-        // Calculate distance from circle center to line
-        const A = endY - shot.startY;
-        const B = shot.startX - endX;
-        const C = endX * shot.startY - shot.startX * endY;
-        
-        const distance = Math.abs(A * target.x + B * target.y + C) / Math.sqrt(A * A + B * B);
-        
-        return distance <= target.radius;
-    }
-    
-    reload() {
-        if (this.weaponSystem.startReload()) {
-            this.audioSystem.playReloadSound();
-            
-            if (window.mobileOptimizer) {
-                window.mobileOptimizer.provideFeedback('reload');
-            }
-        }
-    }
-    
-    switchWeapon() {
-        if (this.weaponSystem.switchWeapon()) {
-            this.audioSystem.playWeaponSwitchSound();
-            
-            if (window.mobileOptimizer) {
-                window.mobileOptimizer.provideFeedback('weapon_switch');
-            }
-        }
-    }
-    
-    updateTargets(deltaTime) {
-        for (let i = this.targets.length - 1; i >= 0; i--) {
-            const target = this.targets[i];
-            
-            if (target.type === 'tracking') {
-                this.updateTrackingTarget(target, deltaTime);
-            } else if (target.type === 'positioning') {
-                this.updatePositioningTarget(target, deltaTime);
-            }
-        }
-    }
-    
-    updateTrackingTarget(target, deltaTime) {
-        // Update direction change timer
-        target.directionChangeTime += deltaTime * 1000;
-        
-        if (target.directionChangeTime >= target.directionChangeCooldown) {
-            target.direction += (Math.random() - 0.5) * Math.PI;
-            target.directionChangeTime = 0;
-            target.directionChangeCooldown = 1000 + Math.random() * 2000;
-        }
-        
-        // Update velocity
-        target.velocity.x = Math.cos(target.direction) * target.speed;
-        target.velocity.y = Math.sin(target.direction) * target.speed;
-        
-        // Update position
-        target.x += target.velocity.x * deltaTime;
-        target.y += target.velocity.y * deltaTime;
-        
-        // Bounce off walls
-        if (target.x - target.radius < this.targetArea.x || 
-            target.x + target.radius > this.targetArea.x + this.targetArea.width) {
-            target.velocity.x *= -1;
-            target.direction = Math.atan2(target.velocity.y, target.velocity.x);
-        }
-        
-        if (target.y - target.radius < this.targetArea.y || 
-            target.y + target.radius > this.targetArea.y + this.targetArea.height) {
-            target.velocity.y *= -1;
-            target.direction = Math.atan2(target.velocity.y, target.velocity.x);
-        }
-        
-        // Clamp position
-        target.x = Math.max(this.targetArea.x + target.radius, 
-                   Math.min(this.targetArea.x + this.targetArea.width - target.radius, target.x));
-        target.y = Math.max(this.targetArea.y + target.radius, 
-                   Math.min(this.targetArea.y + this.targetArea.height - target.radius, target.y));
-    }
-    
-    updatePositioningTarget(target, deltaTime) {
-        const elapsed = Date.now() - target.createdAt;
-        
-        if (elapsed >= target.lifeTime) {
-            // Target expired
-            this.statsSystem.recordTargetMissed(target.id);
-            this.targets.splice(this.targets.indexOf(target), 1);
-        }
-    }
-    
-    updateProjectiles(deltaTime) {
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
-            const projectile = this.projectiles[i];
-            
-            // Move projectile
-            const distance = projectile.speed * deltaTime;
-            projectile.x += projectile.directionX * distance;
-            projectile.y += projectile.directionY * distance;
-            projectile.distanceTraveled += distance;
-            
-            // Remove if out of range
-            if (projectile.distanceTraveled >= projectile.range) {
-                this.projectiles.splice(i, 1);
-            }
-        }
-    }
-    
-    updateUI() {
-        const stats = this.statsSystem.getCurrentStats();
-        const weaponStats = this.weaponSystem.getWeaponStats();
-        
-        // Update HUD
-        document.getElementById('weapon-name').textContent = weaponStats.name;
-        document.getElementById('ammo-count').textContent = weaponStats.ammo;
-        document.getElementById('accuracy').textContent = stats.accuracy + '%';
-        document.getElementById('hits').textContent = stats.hits;
-        document.getElementById('shots').textContent = stats.shots;
-    }
-    
-    render() {
-        if (!this.ctx) return;
-        
-        // Clear canvas
-        this.ctx.fillStyle = '#1a1a1a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        if (this.state === 'playing' || this.state === 'paused') {
-            this.renderGame();
-        }
-    }
-    
-    renderGame() {
-        // Render areas
-        this.renderAreas();
-        
-        // Render targets
-        this.renderTargets();
-        
-        // Render projectiles
-        this.renderProjectiles();
-        
-        // Render player
-        this.renderPlayer();
-        
-        // Render UI elements
-        this.renderUI();
-    }
-    
-    renderAreas() {
-        // Player area
-        this.ctx.strokeStyle = '#7f8c8d';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(this.playerArea.x, this.playerArea.y, 
-                           this.playerArea.width, this.playerArea.height);
-        
-        this.ctx.fillStyle = 'rgba(52, 73, 94, 0.2)';
-        this.ctx.fillRect(this.playerArea.x, this.playerArea.y, 
-                         this.playerArea.width, this.playerArea.height);
-        
-        // Target area
-        this.ctx.strokeStyle = '#e74c3c';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(this.targetArea.x, this.targetArea.y, 
-                           this.targetArea.width, this.targetArea.height);
-        
-        this.ctx.fillStyle = 'rgba(231, 76, 60, 0.1)';
-        this.ctx.fillRect(this.targetArea.x, this.targetArea.y, 
-                         this.targetArea.width, this.targetArea.height);
-    }
-    
-    renderTargets() {
-        for (const target of this.targets) {
-            // Health bar background
-            const barWidth = target.radius * 2;
-            const barHeight = 4;
-            const barX = target.x - barWidth / 2;
-            const barY = target.y - target.radius - 10;
-            
-            this.ctx.fillStyle = '#555';
-            this.ctx.fillRect(barX, barY, barWidth, barHeight);
-            
-            // Health bar
-            const healthPercent = target.health / target.maxHealth;
-            this.ctx.fillStyle = healthPercent > 0.5 ? '#27ae60' : '#e74c3c';
-            this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-            
-            // Target circle
-            this.ctx.beginPath();
-            this.ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
-            
-            if (target.type === 'tracking') {
-                this.ctx.fillStyle = '#e74c3c';
-            } else {
-                this.ctx.fillStyle = '#f39c12';
-            }
-            
-            this.ctx.fill();
-            
-            // Target border
-            this.ctx.strokeStyle = '#ecf0f1';
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
-            
-            // Crosshair on target
-            this.ctx.strokeStyle = '#ecf0f1';
-            this.ctx.lineWidth = 1;
-            this.ctx.beginPath();
-            this.ctx.moveTo(target.x - 10, target.y);
-            this.ctx.lineTo(target.x + 10, target.y);
-            this.ctx.moveTo(target.x, target.y - 10);
-            this.ctx.lineTo(target.x, target.y + 10);
-            this.ctx.stroke();
-        }
-    }
-    
-    renderProjectiles() {
-        this.ctx.fillStyle = '#f39c12';
-        
-        for (const projectile of this.projectiles) {
-            this.ctx.beginPath();
-            this.ctx.arc(projectile.x, projectile.y, 2, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
-    }
-    
-    renderPlayer() {
-        // Player circle
-        this.ctx.beginPath();
-        this.ctx.arc(this.player.x, this.player.y, 15, 0, Math.PI * 2);
-        this.ctx.fillStyle = '#3498db';
-        this.ctx.fill();
-        this.ctx.strokeStyle = '#ecf0f1';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-        
-        // Aim line
-        this.ctx.strokeStyle = '#e74c3c';
-        this.ctx.lineWidth = 1;
-        this.ctx.setLineDash([5, 5]);
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.player.x, this.player.y);
-        this.ctx.lineTo(this.player.aimX, this.player.aimY);
-        this.ctx.stroke();
-        this.ctx.setLineDash([]);
-    }
-    
-    renderUI() {
-        // Weapon spread indicator
-        const spreadRadius = this.weaponSystem.getSpreadRadius(this.settings.targetDistance);
-        if (spreadRadius > 0) {
-            this.ctx.strokeStyle = 'rgba(231, 76, 60, 0.3)';
-            this.ctx.lineWidth = 1;
-            this.ctx.beginPath();
-            this.ctx.arc(this.player.aimX, this.player.aimY, spreadRadius, 0, Math.PI * 2);
-            this.ctx.stroke();
-        }
-        
-        // Reload indicator
-        if (this.weaponSystem.isReloading) {
-            const progress = this.weaponSystem.getReloadProgress();
-            const barWidth = 100;
-            const barHeight = 10;
-            const barX = this.canvas.width / 2 - barWidth / 2;
-            const barY = this.canvas.height - 50;
-            
-            this.ctx.fillStyle = '#555';
-            this.ctx.fillRect(barX, barY, barWidth, barHeight);
-            
-            this.ctx.fillStyle = '#f39c12';
-            this.ctx.fillRect(barX, barY, barWidth * progress, barHeight);
-            
-            this.ctx.strokeStyle = '#ecf0f1';
-            this.ctx.lineWidth = 1;
-            this.ctx.strokeRect(barX, barY, barWidth, barHeight);
-            
-            this.ctx.fillStyle = '#ecf0f1';
-            this.ctx.font = '12px monospace';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText('Reloading...', this.canvas.width / 2, barY - 5);
-        }
-    }
-    
-    gameLoop(currentTime = 0) {
-        // Calculate delta time
+        const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
         
-        // Cap delta time to prevent large jumps
-        const clampedDeltaTime = Math.min(deltaTime, 1/30);
+        // Update game systems
+        if (this.state === 'playing') {
+            this.handleMovement(deltaTime);
+            this.updateTargets(deltaTime);
+            
+            // Update weapon system
+            if (this.weaponSystem) {
+                this.weaponSystem.update(deltaTime);
+            }
+        }
         
-        // Update and render
-        this.update(clampedDeltaTime);
+        // Render scene
         this.render();
-        
-        // Continue loop
-        requestAnimationFrame((time) => this.gameLoop(time));
         
         // Update FPS counter
         this.frameCount++;
-        if (this.frameCount % 60 === 0) {
-            this.fps = Math.round(1 / deltaTime);
+        if (currentTime - this.lastTime >= 1000) {
+            this.fps = this.frameCount;
+            this.frameCount = 0;
         }
     }
 }
 
 // Initialize game when page loads
-window.addEventListener('load', () => {
-    window.game = new FPSTrainingGame();
+window.addEventListener('DOMContentLoaded', () => {
+    // Wait a short time to ensure all scripts are loaded
+    setTimeout(() => {
+        window.game = new FPS3DTrainingGame();
+    }, 100);
 });

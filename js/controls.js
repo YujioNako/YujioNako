@@ -1,8 +1,8 @@
-// Controls System for FPS Training Simulator
+// 3D Controls System for FPS Training Simulator
 
 class ControlSystem {
-    constructor(canvas) {
-        this.canvas = canvas;
+    constructor(game) {
+        this.game = game;
         this.keys = {};
         this.mouse = {
             x: 0,
@@ -62,43 +62,35 @@ class ControlSystem {
             e.preventDefault();
         });
         
-        // Mouse events
-        this.canvas.addEventListener('mousedown', (e) => {
-            this.mouse.down = true;
-            this.actions.shoot = true;
+        // Mouse events for 3D FPS controls
+        document.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // Left click
+                this.mouse.down = true;
+                this.actions.shoot = true;
+                if (this.game.state === 'playing') {
+                    this.game.handleShooting();
+                }
+            }
             e.preventDefault();
         });
         
         document.addEventListener('mouseup', (e) => {
-            this.mouse.down = false;
+            if (e.button === 0) { // Left click
+                this.mouse.down = false;
+                this.actions.shoot = false;
+            }
             e.preventDefault();
         });
         
-        this.canvas.addEventListener('mousemove', (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            this.mouse.x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-            this.mouse.y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+        // Mouse movement for first-person look
+        document.addEventListener('mousemove', (e) => {
+            if (this.game.isPointerLocked) {
+                this.game.handleMouseMovement(e.movementX, e.movementY);
+            }
         });
         
         // Prevent context menu
-        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-        
-        // Pointer lock for better mouse control (optional)
-        this.canvas.addEventListener('click', () => {
-            if (document.pointerLockElement !== this.canvas) {
-                this.canvas.requestPointerLock?.();
-            }
-        });
-        
-        document.addEventListener('pointerlockchange', () => {
-            this.handlePointerLockChange();
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-            if (document.pointerLockElement === this.canvas) {
-                this.handlePointerLockMovement(e);
-            }
-        });
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
     }
     
     setupGamepad() {
@@ -138,20 +130,23 @@ class ControlSystem {
         }
         
         // Touch aiming on canvas
-        this.canvas.addEventListener('touchstart', (e) => {
-            this.handleTouchStart(e);
-            e.preventDefault();
-        });
-        
-        this.canvas.addEventListener('touchmove', (e) => {
-            this.handleTouchMove(e);
-            e.preventDefault();
-        });
-        
-        this.canvas.addEventListener('touchend', (e) => {
-            this.handleTouchEnd(e);
-            e.preventDefault();
-        });
+        const canvas = document.getElementById('game-canvas');
+        if (canvas) {
+            canvas.addEventListener('touchstart', (e) => {
+                this.handleTouchStart(e);
+                e.preventDefault();
+            });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                this.handleTouchMove(e);
+                e.preventDefault();
+            });
+            
+            canvas.addEventListener('touchend', (e) => {
+                this.handleTouchEnd(e);
+                e.preventDefault();
+            });
+        }
         
         // Mobile action buttons
         this.setupMobileButtons();
@@ -165,6 +160,9 @@ class ControlSystem {
         if (shootBtn) {
             shootBtn.addEventListener('touchstart', () => {
                 this.actions.shoot = true;
+                if (this.game.state === 'playing') {
+                    this.game.handleShooting();
+                }
             });
             shootBtn.addEventListener('touchend', () => {
                 this.actions.shoot = false;
@@ -174,34 +172,79 @@ class ControlSystem {
         if (reloadBtn) {
             reloadBtn.addEventListener('touchstart', () => {
                 this.actions.reload = true;
+                if (this.game.weaponSystem) {
+                    this.game.weaponSystem.reload();
+                }
             });
         }
         
         if (switchBtn) {
             switchBtn.addEventListener('touchstart', () => {
                 this.actions.switchWeapon = true;
+                if (this.game.weaponSystem) {
+                    this.game.weaponSystem.switchWeapon();
+                    this.game.updateWeaponDisplay();
+                }
             });
         }
     }
     
     handleKeyDown(e) {
         switch(e.code) {
+            case 'KeyW':
+                this.game.moveState.forward = true;
+                break;
+            case 'KeyS':
+                this.game.moveState.backward = true;
+                break;
+            case 'KeyA':
+                this.game.moveState.left = true;
+                break;
+            case 'KeyD':
+                this.game.moveState.right = true;
+                break;
             case 'KeyR':
                 this.actions.reload = true;
+                if (this.game.weaponSystem) {
+                    this.game.weaponSystem.reload();
+                }
                 break;
             case 'Space':
                 this.actions.switchWeapon = true;
+                if (this.game.weaponSystem) {
+                    this.game.weaponSystem.switchWeapon();
+                    this.game.updateWeaponDisplay();
+                }
                 break;
             case 'Escape':
-                // Handle pause/menu
+                if (this.game.state === 'playing') {
+                    this.game.pauseGame();
+                }
                 break;
         }
     }
     
     handleKeyUp(e) {
-        // Reset single-frame actions
-        if (e.code === 'KeyR') this.actions.reload = false;
-        if (e.code === 'Space') this.actions.switchWeapon = false;
+        switch(e.code) {
+            case 'KeyW':
+                this.game.moveState.forward = false;
+                break;
+            case 'KeyS':
+                this.game.moveState.backward = false;
+                break;
+            case 'KeyA':
+                this.game.moveState.left = false;
+                break;
+            case 'KeyD':
+                this.game.moveState.right = false;
+                break;
+            case 'KeyR':
+                this.actions.reload = false;
+                break;
+            case 'Space':
+                this.actions.switchWeapon = false;
+                break;
+        }
     }
     
     handlePointerLockChange() {

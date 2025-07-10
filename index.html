@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPS Training Simulator</title>
+    <title>3D FPS Training Simulator</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
     <div id="game-container">
-        <canvas id="game-canvas" width="1200" height="800"></canvas>
+        <div id="render-container">
+            <canvas id="game-canvas" width="1200" height="800"></canvas>
+        </div>
         
         <!-- UI Overlay -->
         <div id="ui-overlay">
@@ -29,7 +31,7 @@
             
             <!-- Main Menu -->
             <div id="main-menu" class="menu active">
-                <h1>FPS Training Simulator</h1>
+                <h1>3D FPS Training Simulator</h1>
                 <div class="menu-buttons">
                     <button id="start-tracking">Tracking Training</button>
                     <button id="start-positioning">Positioning Training</button>
@@ -49,12 +51,12 @@
                     <input type="range" id="volume-slider" min="0" max="100" step="5" value="50">
                 </div>
                 <div class="settings-group">
-                    <label>Target Distance: <span id="distance-value">400px</span></label>
-                    <input type="range" id="distance-slider" min="200" max="800" step="50" value="400">
+                    <label>Field of View: <span id="fov-value">75°</span></label>
+                    <input type="range" id="fov-slider" min="60" max="120" step="5" value="75">
                 </div>
                 <div class="settings-group">
-                    <label>Target Size: <span id="target-size-value">200px</span></label>
-                    <input type="range" id="target-size-slider" min="100" max="400" step="50" value="200">
+                    <label>Target Distance: <span id="distance-value">20m</span></label>
+                    <input type="range" id="distance-slider" min="10" max="50" step="5" value="20">
                 </div>
                 <button id="back-to-menu">Back to Menu</button>
             </div>
@@ -88,7 +90,7 @@
     <!-- Loading Screen -->
     <div id="loading-screen">
         <div class="loading-content">
-            <h2>Loading FPS Training Simulator...</h2>
+            <h2>Loading 3D FPS Training Simulator...</h2>
             <div class="loading-bar">
                 <div class="loading-progress"></div>
             </div>

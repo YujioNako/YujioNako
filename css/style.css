@@ -1,0 +1,443 @@
+/* FPS Training Simulator - CS:GO Style */
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34495e;
+    --accent-color: #e74c3c;
+    --text-color: #ecf0f1;
+    --background-color: #1a1a1a;
+    --ui-background: rgba(44, 62, 80, 0.9);
+    --border-color: #7f8c8d;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#render-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#render-container canvas {
+    display: block;
+    cursor: none;
+}
+
+/* UI Overlay */
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* HUD */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#weapon-info {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+    background: var(--ui-background);
+    padding: 15px 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 5px;
+    font-weight: bold;
+    text-align: right;
+}
+
+#weapon-name {
+    display: block;
+    font-size: 18px;
+    color: var(--accent-color);
+    margin-bottom: 5px;
+}
+
+#ammo-count {
+    display: block;
+    font-size: 24px;
+    color: var(--text-color);
+}
+
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+#crosshair::before,
+#crosshair::after {
+    content: '';
+    position: absolute;
+    background: var(--accent-color);
+    box-shadow: 0 0 5px rgba(231, 76, 60, 0.8);
+}
+
+#crosshair::before {
+    top: 50%;
+    left: 3px;
+    right: 3px;
+    height: 2px;
+    transform: translateY(-50%);
+}
+
+#crosshair::after {
+    left: 50%;
+    top: 3px;
+    bottom: 3px;
+    width: 2px;
+    transform: translateX(-50%);
+}
+
+#stats-display {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    background: var(--ui-background);
+    padding: 15px 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+#stats-display div {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+/* Menus */
+.menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--ui-background);
+    border: 3px solid var(--border-color);
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+    display: none;
+    min-width: 400px;
+}
+
+.menu.active {
+    display: block;
+}
+
+.menu h1 {
+    color: var(--accent-color);
+    margin-bottom: 30px;
+    font-size: 32px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.menu h2 {
+    color: var(--accent-color);
+    margin-bottom: 25px;
+    font-size: 24px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+button {
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    color: var(--text-color);
+    border: 2px solid var(--border-color);
+    padding: 15px 25px;
+    font-size: 16px;
+    font-family: inherit;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+button:hover {
+    background: linear-gradient(45deg, var(--secondary-color), var(--accent-color));
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Settings */
+.settings-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.settings-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 8px;
+    border-radius: 5px;
+    background: var(--secondary-color);
+    outline: none;
+    -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    border: none;
+}
+
+/* Loading Screen */
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--background-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-content {
+    text-align: center;
+    max-width: 400px;
+}
+
+.loading-content h2 {
+    color: var(--accent-color);
+    margin-bottom: 30px;
+    font-size: 24px;
+}
+
+.loading-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--secondary-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.loading-progress {
+    height: 100%;
+    background: linear-gradient(45deg, var(--accent-color), var(--warning-color));
+    width: 0%;
+    animation: loading 3s ease-in-out;
+}
+
+@keyframes loading {
+    to { width: 100%; }
+}
+
+/* Mobile Controls */
+.mobile-only {
+    display: none;
+}
+
+#mobile-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 200px;
+    pointer-events: auto;
+    z-index: 20;
+}
+
+#virtual-joystick-left {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 120px;
+    height: 120px;
+}
+
+.joystick-outer {
+    width: 100%;
+    height: 100%;
+    border: 3px solid var(--border-color);
+    border-radius: 50%;
+    background: rgba(44, 62, 80, 0.5);
+    position: relative;
+}
+
+.joystick-inner {
+    width: 40px;
+    height: 40px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+}
+
+#mobile-buttons {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mobile-btn {
+    width: 80px;
+    height: 50px;
+    background: var(--ui-background);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+
+.mobile-btn:active {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+/* Game States */
+.game-active #main-menu,
+.game-active #settings-menu,
+.game-active #pause-menu {
+    display: none;
+}
+
+.game-active #crosshair {
+    display: block;
+}
+
+.game-paused #hud {
+    opacity: 0.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .mobile-only {
+        display: block;
+    }
+    
+    #game-canvas {
+        width: 100vw;
+        height: 100vh;
+    }
+    
+    .menu {
+        width: 90%;
+        max-width: none;
+        padding: 20px;
+    }
+    
+    .menu h1 {
+        font-size: 24px;
+    }
+    
+    .menu h2 {
+        font-size: 20px;
+    }
+    
+    button {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+    
+    #weapon-info {
+        bottom: 150px;
+        right: 20px;
+        padding: 10px 15px;
+    }
+    
+    #stats-display {
+        top: 20px;
+        left: 20px;
+        padding: 10px 15px;
+    }
+}
+
+/* Performance optimizations */
+* {
+    will-change: auto;
+}
+
+.menu {
+    will-change: opacity, transform;
+}
+
+#crosshair {
+    will-change: transform;
+}
+
+.joystick-inner {
+    will-change: transform;
+}
